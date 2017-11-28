@@ -54,14 +54,34 @@ public class GithubQuerier {
 
     private static List<JSONObject> getEvents(String user) throws IOException {
         List<JSONObject> eventList = new ArrayList<JSONObject>();
-        String url = BASE_URL + user + "/events";
-        System.out.println(url);
-        JSONObject json = Util.queryAPI(new URL(url));
-        System.out.println(json);
-        JSONArray events = json.getJSONArray("root");
-        for (int i = 0; i < events.length() && i < 10; i++) {
-            eventList.add(events.getJSONObject(i));
-        }
+        int counter = 0; // Show maximum of 10 PushEvents
+
+        for (int pageNum = 1; pageNum > 0; pageNum++) {
+            String url = BASE_URL + user + "/events?page=" + pageNum + "&per_page=100";
+            System.out.println(url);
+            JSONObject json = Util.queryAPI(new URL(url));
+            System.out.println(json);
+            JSONArray events = json.getJSONArray("root");
+
+            // If events is empty (out of data)
+            if (events.length() == 0)
+                break;
+
+            for (int i = 0; i < events.length(); i++) { //&& i < 10; i++) {
+                if (events.getJSONObject(i).get("type").equals("PushEvent"))    // Only save object if PushEvent
+                {
+                    eventList.add(events.getJSONObject(i));
+                    counter++;
+                } // if
+
+                // If 10 PushEvents have been saved, stop looking for more --> break out of all loops
+                if (counter >= 10) {
+                    i = events.length();
+                    pageNum = -1;
+                } // if
+            } // for
+        } // for
+
         return eventList;
-    }
+    } // getEvents()
 }
